@@ -3,7 +3,11 @@ const Koa = require('koa');
 const koaBody = require('koa-body').default;
 
 const app = new Koa();
-app.use(koaBody());
+
+app.use(koaBody({
+  urlencoded: true,
+  multipart: true,
+}));
 
 function getCurrentDateTime() {
   const currentdate = new Date();
@@ -60,7 +64,22 @@ class Tickets {
 
 const tickets = new Tickets();
 tickets.addTicket(1, 'get over here', 'Очень много подробного текста', false, getCurrentDateTime());
-tickets.addTicket(2, '2222222', '2222222222222222222222222222', true, getCurrentDateTime());
+tickets.addTicket(2, '333333333', '2222222222222222222222222222', true, getCurrentDateTime());
+tickets.addTicket(3, '44444444444444', '44444444444444444444', true, getCurrentDateTime());
+
+app.use(async (ctx, next) => {
+  if (ctx.request.method !== 'OPTIONS') {
+    next();
+
+    return;
+  }
+
+  ctx.response.set('Access-Control-Allow-Origin', '*');
+  ctx.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  ctx.response.set('Access-Control-Allow-Methods', 'DELETE, PUT, PATCH, GET, POST');
+
+  ctx.response.status = 204;
+});
 
 app.use(async (ctx, next) => {
   ctx.set('Access-Control-Allow-Origin', '*');
@@ -85,12 +104,16 @@ app.use(async ctx => {
       return;
     case 'updateTicket':
       tickets.redoTicket(data.id, data.name, data.description, data.status);
+      ctx.response.body = { 'comand': 'updateTicket', 'data': tickets.tickets };
       return;
     case 'deleteTicket':
       tickets.deleteTicket(ctx.request.query.id);
+      ctx.response.body = { 'comand': 'deleteTicket', 'data':  tickets.tickets };
       return;
     case 'addTicket':
       tickets.addTicket(tickets.getNewID(), data.name, data.description, false, getCurrentDateTime());
+      ctx.response.body = { 'comand': 'addTicket', 'data':  tickets.tickets };
+      return;
     default:
       ctx.response.status = 404;
       return;
